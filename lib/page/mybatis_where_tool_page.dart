@@ -92,7 +92,8 @@ class MybatisWhereToolPage extends StatelessWidget{
           continue;
         }
         List<String> fileds = andItem.split(spStr);
-        whereResults.add('''\n<if test="${fileds[0]} != null and ${fileds[0]} != ''">${i > 1 ? andSp : ''}${fileds[0]}$spStr#{${toLowerCamelCase(fileds[0])}}</if>''');
+        String fieldName = fileds[0].trim();
+        whereResults.add('''\n<if test="$fieldName != null and $fieldName != ''">${i > 1 ? '$andSp ' : ''}$fieldName$spStr#{${toLowerCamelCase(fieldName)}}</if>''');
         // String fieldStr = andItem.split(spStr);
       }
       whereString = whereResults.join('');
@@ -122,7 +123,7 @@ class MybatisWhereToolPage extends StatelessWidget{
 
                   // Specify language
                   // It is recommended to give it a value for performance
-                  language: 'dart',
+                  language: 'xml',
 
                   // Specify highlight theme
                   // All available themes are listed in `themes` folder
