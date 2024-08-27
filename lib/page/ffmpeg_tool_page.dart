@@ -1,21 +1,59 @@
+import 'dart:io';
+
+import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:my_tools_application/utils/dialog_util.dart';
+import 'package:my_tools_application/utils/log_util.dart';
+import 'package:permission_handler/permission_handler.dart';
 class FFmpegToolPage extends StatelessWidget{
   final FFmpegToolPageController controller = Get.put(FFmpegToolPageController());
 
   FFmpegToolPage({super.key});
 
+  Future<bool> _requestStoragePermission() async {
+    final status = await Permission.storage.request();
+    return status.isGranted;
+  }
 
-  Future<void> _selectDirectory() async {
+  Future<void> _mergeVideos() async {
     try {
-      final result = await FilePicker.platform.getDirectoryPath();
-      print(result);
-      controller.setDirectoryPath(result??"");
+      // 创建一个临时文件来存放 concat 指令
+      final concatFile = await File('concat.txt').create();
+
+      // 写入 concat 指令
+      await concatFile.writeAsString('file video1.mp4\nfile video2.mp4');
+
+      // 使用 concat 指令来合并视频
+      final result = await FFmpegKit.execute(
+        '-f concat -safe 0 -i ${concatFile.path} -c copy merged_video.mp4',
+      );
+    
     } catch (e) {
       print(e);
     }
   }
+
+
+  Future<void> _selectDirectory(BuildContext context) async {
+    try {
+      //获取权限
+      if(await _requestStoragePermission()){
+        // ignore: use_build_context_synchronously
+        DialogUtil.alert(context, "获取权限失败");
+        throw Exception("获取权限失败");
+      }
+      final result = await FilePicker.platform.getDirectoryPath();
+      controller.setDirectoryPath(result??"");
+    } catch (e) {
+      // ignore: avoid_print
+      print(e);
+      LogUtil.error("合并视频失败", e);
+    }
+  }
+
+
 
 
   @override
@@ -34,7 +72,7 @@ class FFmpegToolPage extends StatelessWidget{
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
             ElevatedButton(
-              onPressed: _selectDirectory,
+              onPressed: () => _selectDirectory(context),
               child: const Text('Select Directory'),
             ),
             // if (controller.directoryPath != '')
