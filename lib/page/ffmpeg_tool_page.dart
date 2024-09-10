@@ -17,6 +17,7 @@ class FFmpegToolPage extends StatelessWidget{
     return status.isGranted;
   }
 
+  // ignore: unused_element
   Future<void> _mergeVideos() async {
     try {
       // 创建一个临时文件来存放 concat 指令
@@ -26,12 +27,13 @@ class FFmpegToolPage extends StatelessWidget{
       await concatFile.writeAsString('file video1.mp4\nfile video2.mp4');
 
       // 使用 concat 指令来合并视频
+      // ignore: unused_local_variable
       final result = await FFmpegKit.execute(
         '-f concat -safe 0 -i ${concatFile.path} -c copy merged_video.mp4',
       );
     
     } catch (e) {
-      print(e);
+      LogUtil.error(e);
     }
   }
 

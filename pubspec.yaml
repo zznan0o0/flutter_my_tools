@@ -42,6 +42,8 @@ dependencies:
   path_provider: ^2.1.4
   permission_handler: ^11.3.1
   flutter_highlight: ^0.7.0
+  template_engine: ^1.4.0
+  sqlparser: ^0.37.1
 
 dev_dependencies:
   flutter_test:

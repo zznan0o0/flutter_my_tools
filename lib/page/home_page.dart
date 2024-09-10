@@ -12,7 +12,7 @@ class HomePage extends StatelessWidget {
        body: GridView.count(crossAxisCount: 3, children: [
         createContain('FFmpeg视频工具', RouteConfig.ffmpegToolPage),
         createContain('mybatis sql工具', RouteConfig.mybatisWhereToolPage),
-        createContain('FFmpeg视频工具', RouteConfig.ffmpegToolPage),
+        createContain('文本分割编辑', RouteConfig.multipleTextEditPage),
         createContain('调试日志', RouteConfig.debugPage),
        ],),
     );

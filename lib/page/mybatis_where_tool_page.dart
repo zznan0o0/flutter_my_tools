@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:get/get.dart';
 import 'package:my_tools_application/page/layout/back_layout.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:my_tools_application/utils/sql_util.dart';
 
 class MybatisWhereToolPage extends StatelessWidget{
   MybatisWhereToolPage({super.key});
@@ -60,9 +60,9 @@ class MybatisWhereToolPage extends StatelessWidget{
       }
       String andSp = "and";
       if(!sqlWhere.contains(andSp)){
-        whereString = "AND";
+        andSp = "AND";
       }
-      List<String> andStrs = sqlWhere.split("and");
+      List<String> andStrs = sqlWhere.split(andSp);
       List<String> whereResults = [];
       List<String> whereSymbols = [
         '!=',
@@ -85,16 +85,28 @@ class MybatisWhereToolPage extends StatelessWidget{
         'in',
         'IN',
       ];
+
+      List<String> likeSymbols = [
+        'not like',
+        'NOT LIKE',
+        'like',
+        'LIKE',
+      ];
       int i = 0;
       for(String andItem in andStrs){
         i++;
         String spStr = "";
         bool inFlag = false;
+        SqlSymbolEnum sqlSymbolEnum = SqlSymbolEnum.other;
         for(String ws in whereSymbols){
           if(andItem.contains(ws)){
             spStr = ws;
             if(inSymbols.contains(ws)){
               inFlag = true;
+              sqlSymbolEnum = SqlSymbolEnum.whereIn;
+            }
+            else if(likeSymbols.contains(ws)){
+              sqlSymbolEnum = SqlSymbolEnum.like;
             }
             break;
           }
@@ -106,8 +118,11 @@ class MybatisWhereToolPage extends StatelessWidget{
         List<String> fileds = andItem.split(spStr);
         String fieldName = fileds[0].trim();
         String lowerCamelCaseFieldName = toLowerCamelCase(fieldName);
-        if(inFlag){
+        if(sqlSymbolEnum == SqlSymbolEnum.whereIn){
           whereResults.add('''\n<if test="$lowerCamelCaseFieldName != null and $lowerCamelCaseFieldName.size > 0">${i > 1 ? '$andSp ' : ''}$fieldName $spStr <foreach collection="$lowerCamelCaseFieldName" item="itemId" index="index" open="(" close=")" separator=",">#{itemId}</foreach></if>''');
+        }
+        else if(sqlSymbolEnum == SqlSymbolEnum.like){
+          whereResults.add('''\n<if test="$lowerCamelCaseFieldName != null and $lowerCamelCaseFieldName != ''">${i > 1 ? '$andSp ' : ''}$fieldName $spStr concat('%', #{$lowerCamelCaseFieldName}, '%')</if>''');
         }
         else{
           whereResults.add('''\n<if test="$lowerCamelCaseFieldName != null and $lowerCamelCaseFieldName != ''">${i > 1 ? '$andSp ' : ''}$fieldName$spStr#{$lowerCamelCaseFieldName}</if>''');
@@ -126,18 +141,18 @@ class MybatisWhereToolPage extends StatelessWidget{
   }
 
   /// 使用正则表达式替换第一个英文字符之前的内容为换行符
-String _replaceFirstEnglishCharWithNewline(String str) {
-  // 正则表达式：匹配第一个英文字符之前的内容
-  final regex = RegExp(r'^[^a-zA-Z]*([a-zA-Z])');
-  final match = regex.firstMatch(str);
+  String _replaceFirstEnglishCharWithNewline(String str) {
+    // 正则表达式：匹配第一个英文字符之前的内容
+    final regex = RegExp(r'^[^a-zA-Z]*([a-zA-Z])');
+    final match = regex.firstMatch(str);
 
-  if (match != null) {
-    final index = match.start + match.group(0)!.length - 1;
-    return '\n${str.substring(index)}';
-  } else {
-    return str; // 未找到英文字符，返回原字符串
+    if (match != null) {
+      final index = match.start + match.group(0)!.length - 1;
+      return '\n${str.substring(index)}';
+    } else {
+      return str; // 未找到英文字符，返回原字符串
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -147,7 +162,7 @@ String _replaceFirstEnglishCharWithNewline(String str) {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              TextField(maxLines: null, controller: controller.textEditingController, decoration: const InputDecoration(hintText: "请输入SQL语句", border: OutlineInputBorder())),
+              TextField(maxLines: null, controller: controller.textEditingController, decoration: const InputDecoration(hintText: "请输入WHERE SQL语句,带where关键字。最好不要输入其他不一定兼容", border: OutlineInputBorder())),
               Row(children: [
                 TextButton(onPressed: _generate, style: ButtonStyle(padding: WidgetStateProperty.all(const EdgeInsets.all(16))), child: const Text("生成↓")),
                 TextButton(onPressed: _copy, style: ButtonStyle(padding: WidgetStateProperty.all(const EdgeInsets.all(16))), child: const Text("复制结果"),),
@@ -198,4 +213,17 @@ class MybatisWhereToolPageController extends GetxController{
     textEditingController.clear();
   }
 
+  void generate(){
+    String sql = textEditingController.text;
+    SqlUtil.formatMybatis(sql);
+  }
+
+
+}
+
+enum SqlSymbolEnum{
+  whereIn, //in
+  like,
+  other,
+  ;
 }
