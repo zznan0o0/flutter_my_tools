@@ -96,13 +96,11 @@ class MybatisWhereToolPage extends StatelessWidget{
       for(String andItem in andStrs){
         i++;
         String spStr = "";
-        bool inFlag = false;
         SqlSymbolEnum sqlSymbolEnum = SqlSymbolEnum.other;
         for(String ws in whereSymbols){
           if(andItem.contains(ws)){
             spStr = ws;
             if(inSymbols.contains(ws)){
-              inFlag = true;
               sqlSymbolEnum = SqlSymbolEnum.whereIn;
             }
             else if(likeSymbols.contains(ws)){

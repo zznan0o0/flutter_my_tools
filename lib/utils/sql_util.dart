@@ -14,7 +14,8 @@ where d like '%1%' order by e desc
 """;
     AnalysisContext context  = engine.analyze(sql);
     final select = context.root as SelectStatement;
-    print(select.orderBy.toString() + "123");
+    // ignore: avoid_print
+    print("${select.orderBy}123");
     // parseResult.rootNode.
     return "";
   }
