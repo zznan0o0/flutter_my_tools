@@ -1,5 +1,6 @@
 import 'dart:io';
-
+import 'package:ffmpeg_kit_flutter/return_code.dart';
+import 'package:path/path.dart' as path;
 import 'package:ffmpeg_kit_flutter/ffmpeg_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -18,23 +19,98 @@ class FFmpegToolPage extends StatelessWidget{
   }
 
   // ignore: unused_element
-  Future<void> _mergeVideos() async {
+  Future<void> _mergeVideos(String directoryPath) async {
+    String outputPath = '/my_tools_application/ffmpeg';
+    final Directory outputDirectory = Directory(outputPath);
+    if (!await outputDirectory.exists()) {
+      await outputDirectory.create(recursive: true);
+    }
     try {
-      // 创建一个临时文件来存放 concat 指令
-      final concatFile = await File('concat.txt').create();
+      final directory = Directory(directoryPath);
+      if(!await directory.exists()){
+        throw Exception("目录不存在");
+      }
 
-      // 写入 concat 指令
-      await concatFile.writeAsString('file video1.mp4\nfile video2.mp4');
+      final List<FileSystemEntity> entities = await directory.list().toList();
+      for(final entity in entities){
+        Directory childDirectory = Directory(entity.path);
+        final List<FileSystemEntity> files = await childDirectory.list().toList();
+        List<String> fileNames = [];
+        final String currentDirName = path.basename(childDirectory.path);
+        for(final file in files){
+          // 获取文件名
+          fileNames.add(file.path);
+        }
 
-      // 使用 concat 指令来合并视频
-      // ignore: unused_local_variable
-      final result = await FFmpegKit.execute(
-        '-f concat -safe 0 -i ${concatFile.path} -c copy merged_video.mp4',
-      );
+        fileNames.sort((a, b) {
+          final int numA = extractNumberFromFileName(a);
+          final int numB = extractNumberFromFileName(b);
+          return numA.compareTo(numB);
+        });
+
+        List<String> fileAllPaths = [];
+        for(final filePath in fileNames){
+          fileAllPaths.add('$outputPath/$currentDirName/${path.basename(filePath)}');
+        }
+
+        final result = await FFmpegKit.execute(
+          '-i "concat:${fileAllPaths.join("|")}" -c copy $outputPath/$currentDirName.mp4',
+        );
+
+      }
     
     } catch (e) {
       LogUtil.error(e);
     }
+  }
+
+  Future<void> mergeM3U8ToMP4(String directoryPath, String outputPath) async {
+    try {
+      final directory = Directory(directoryPath);
+      if (!await directory.exists()) {
+        throw Exception("目录不存在");
+      }
+
+      final List<FileSystemEntity> entities = await directory.list().toList();
+      for (final entity in entities) {
+        if (entity is Directory) {
+          final List<FileSystemEntity> files = await entity.list().toList();
+          List<String> m3u8Files = [];
+          for (final file in files) {
+            if (path.extension(file.path).toLowerCase() == '.m3u8') {
+              m3u8Files.add(file.path);
+            }
+          }
+
+          for (final m3u8File in m3u8Files) {
+            final String currentDirName = path.basename(entity.path);
+            final String outputFilePath = '$outputPath/$currentDirName.mp4';
+
+            final result = await FFmpegKit.execute(
+              '-i "$m3u8File" -c copy "$outputFilePath"',
+            );
+
+            final returnCode = await result.getReturnCode();
+            if (ReturnCode.isSuccess(returnCode)) {
+              LogUtil.info("成功合并: $outputFilePath");
+            } else {
+              LogUtil.info('合并失败: $outputFilePath');
+            }
+          }
+        }
+      }
+    } catch (e) {
+      LogUtil.error('发生错误: $e');
+    }
+  }
+
+  int extractNumberFromFileName(String fileName) {
+    final RegExp regExp = RegExp(r'\d+');
+    final Match? match = regExp.firstMatch(path.basename(fileName));
+    if (match != null) {
+      return int.parse(match.group(0)!);
+    }
+    return 0; // 如果文件名中没有数字，默认返回0
   }
 
 
@@ -48,6 +124,9 @@ class FFmpegToolPage extends StatelessWidget{
       }
       final result = await FilePicker.platform.getDirectoryPath();
       controller.setDirectoryPath(result??"");
+      if(result!.isNotEmpty){
+        mergeM3U8ToMP4(result, '/my_tools_application/ffmpeg');
+      }
     } catch (e) {
       // ignore: avoid_print
       print(e);

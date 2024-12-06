@@ -13,6 +13,7 @@ class HomePage extends StatelessWidget {
         createContain('FFmpeg视频工具', RouteConfig.ffmpegToolPage),
         createContain('mybatis sql工具', RouteConfig.mybatisWhereToolPage),
         createContain('文本分割编辑', RouteConfig.multipleTextEditPage),
+        createContain('测后台跳登录成参数', RouteConfig.backLoginParamPage),
         createContain('调试日志', RouteConfig.debugPage),
        ],),
     );
