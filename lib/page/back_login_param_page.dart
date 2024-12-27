@@ -17,7 +17,7 @@ class BackLoginParamPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BackLayout(title: "Mybatis Where语句生成工具", 
+    return BackLayout(title: "测后台跳登录参数", 
       body: Center(child: 
         SingleChildScrollView(
           child: Column(
